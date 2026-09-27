@@ -1,0 +1,23 @@
+name: Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check:
+    runs-on: k8s-amd64
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: mattjmorrison-homelab/actions-helm@4395b5c634dc5ad1ee5fbec95b86d445735ad81b
+        with:
+          namespace: backstage
+          service-account: backstage-ci
+          # No live dry-run yet -- the backstage namespace doesn't exist
+          # until this chart's own namespace.yaml first merges and syncs,
+          # and backstage-ci's token-issuer RoleBinding (k8s-ci-rbac) can't
+          # sync into a namespace that doesn't exist either. Same
+          # bootstrap deadlock k8s-zot's check.yml already documents.
+          # helm lint still runs. Flip back to the default (true) once
+          # this namespace/RBAC are confirmed live.
+          dry-run: "false"

@@ -1,0 +1,9 @@
+backend:
+  image:
+    repository: registry.morrisons.site/app-backstage
+    tag: v0.0.0
+
+postgres:
+  image:
+    repository: postgres
+    tag: "16-bookworm"
