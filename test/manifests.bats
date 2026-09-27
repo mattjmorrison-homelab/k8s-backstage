@@ -84,3 +84,29 @@ resource() {
   [ "$host" = "backstage.morrisons.site" ]
   [ "$port" = "7007" ]
 }
+
+@test "bootstrap job runs as the backstage-bootstrap ServiceAccount" {
+  sa=$(resource Job backstage-bootstrap-secrets | yq '.spec.template.spec.serviceAccountName')
+  [ "$sa" = "backstage-bootstrap" ]
+}
+
+@test "bootstrap ConfigMap loads the real bootstrap.sh file, not an inline copy" {
+  script=$(resource ConfigMap backstage-bootstrap-secrets-script | yq '.data."bootstrap.sh"')
+  [[ "$script" == *"ensure_value()"* ]]
+  diff <(echo "$script") manifests/scripts/bootstrap.sh
+}
+
+@test "backstage-bootstrap ServiceAccount is a PreSync hook, applying before the job that depends on it" {
+  hook=$(resource ServiceAccount backstage-bootstrap | yq '.metadata.annotations["argocd.argoproj.io/hook"]')
+  wave=$(resource ServiceAccount backstage-bootstrap | yq '.metadata.annotations["argocd.argoproj.io/sync-wave"]')
+  [ "$hook" = "PreSync" ]
+  [ -n "$wave" ]
+  [ "$wave" -lt 0 ]
+}
+
+@test "bootstrap job is a PreSync hook that deletes before re-creating, so a failed attempt doesn't stick around" {
+  hook=$(resource Job backstage-bootstrap-secrets | yq '.metadata.annotations["argocd.argoproj.io/hook"]')
+  delete_policy=$(resource Job backstage-bootstrap-secrets | yq '.metadata.annotations["argocd.argoproj.io/hook-delete-policy"]')
+  [ "$hook" = "PreSync" ]
+  [ "$delete_policy" = "BeforeHookCreation,HookSucceeded" ]
+}
