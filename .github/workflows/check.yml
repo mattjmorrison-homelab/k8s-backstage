@@ -13,3 +13,11 @@ jobs:
         with:
           namespace: backstage
           service-account: backstage-ci
+          # No live dry-run yet -- the backstage namespace doesn't exist
+          # until this chart's own namespace.yaml first merges and syncs,
+          # and backstage-ci's token-issuer RoleBinding (k8s-ci-rbac) can't
+          # sync into a namespace that doesn't exist either. Same
+          # bootstrap deadlock k8s-zot's check.yml already documents.
+          # helm lint still runs. Flip back to the default (true) once
+          # this namespace/RBAC are confirmed live.
+          dry-run: "false"
